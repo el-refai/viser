@@ -531,6 +531,7 @@ export function FrameSynchronizedMessageHandler() {
         const cameraPosition = viewer.getRenderRequest.current!.position;
         const cameraWxyz = viewer.getRenderRequest.current!.wxyz;
         const cameraFov = viewer.getRenderRequest.current!.fov;
+        const renderDepth = viewer.getRenderRequest.current!.render_depth;
 
         const targetWidth = viewer.getRenderRequest.current!.width;
         const targetHeight = viewer.getRenderRequest.current!.height;
@@ -580,21 +581,51 @@ export function FrameSynchronizedMessageHandler() {
           viewer.getRenderRequest.current!.format == "image/png" ? 0.0 : 1.0,
         ); // Set clear color to transparent
 
-        // Render the scene.
-        renderer.render(viewer.sceneRef.current!, camera);
+        if (renderDepth) {
+          // Create a depth texture
+          const depthTexture = new THREE.DepthTexture();
+          depthTexture.type = THREE.UnsignedShortType;
+          depthTexture.format = THREE.DepthFormat;
 
-        // Get the rendered image.
-        viewer.getRenderRequestState.current = "in_progress";
-        renderer.domElement.toBlob(async (blob) => {
-          renderer.dispose();
-          renderer.forceContextLoss();
+          // Create a render target with depth texture
+          const renderTarget = new THREE.WebGLRenderTarget(targetWidth, targetHeight);
+          renderTarget.depthTexture = depthTexture;
 
+          // Render the scene to the render target
+          renderer.setRenderTarget(renderTarget);
+          renderer.render(viewer.sceneRef.current!, camera);
+          renderer.setRenderTarget(null);
+
+          // Get the depth data
+          const depthBuffer = new Uint16Array(targetWidth * targetHeight);
+          renderer.readRenderTargetPixels(renderTarget, 0, 0, targetWidth, targetHeight, depthBuffer);
+
+          // Convert depth data to a blob
+          const depthBlob = new Blob([depthBuffer.buffer], { type: "application/octet-stream" });
+
+          viewer.getRenderRequestState.current = "in_progress";
           viewer.sendMessageRef.current({
-            type: "GetRenderResponseMessage",
-            payload: new Uint8Array(await blob!.arrayBuffer()),
+            type: "GetRenderDepthResponseMessage",
+            payload: new Uint8Array(await depthBlob.arrayBuffer()),
           });
           viewer.getRenderRequestState.current = "ready";
-        }, viewer.getRenderRequest.current!.format);
+        } else {
+          // Render the scene.
+          renderer.render(viewer.sceneRef.current!, camera);
+
+          // Get the rendered image.
+          viewer.getRenderRequestState.current = "in_progress";
+          renderer.domElement.toBlob(async (blob) => {
+            renderer.dispose();
+            renderer.forceContextLoss();
+
+            viewer.sendMessageRef.current({
+              type: "GetRenderResponseMessage",
+              payload: new Uint8Array(await blob!.arrayBuffer()),
+            });
+            viewer.getRenderRequestState.current = "ready";
+          }, viewer.getRenderRequest.current!.format);
+        }
       }
 
       // Handle messages, but only if we're not trying to render something.

@@ -1049,6 +1049,7 @@ export interface GetRenderRequestMessage {
   wxyz: [number, number, number, number];
   position: [number, number, number];
   fov: number;
+  render_depth: boolean;
 }
 /** Message from client->server carrying a render.
  *

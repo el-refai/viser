@@ -1270,6 +1270,21 @@ class GetRenderRequestMessage(Message):
     wxyz: Tuple[float, float, float, float]
     position: Tuple[float, float, float]
     fov: float
+    render_depth: bool
+
+# @dataclasses.dataclass
+# class GetRenderDepthRequestMessage(Message):
+#     """Message from server->client requesting a depth render from a specified camera
+#     pose."""
+
+#     format: Literal["image/jpeg", "image/png"]
+#     height: int
+#     width: int
+#     quality: int
+
+#     wxyz: Tuple[float, float, float, float]
+#     position: Tuple[float, float, float]
+#     fov: float
 
 
 @dataclasses.dataclass
@@ -1277,6 +1292,12 @@ class GetRenderResponseMessage(Message):
     """Message from client->server carrying a render."""
 
     payload: bytes
+
+# @dataclasses.dataclass
+# class GetRenderDepthResponseMessage(Message):
+#     """Message from client->server carrying a depth render."""
+
+#     payload: bytes
 
 
 @dataclasses.dataclass

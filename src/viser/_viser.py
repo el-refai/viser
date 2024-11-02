@@ -456,6 +456,7 @@ class ClientHandle(_BackwardsCompatibilityShim if not TYPE_CHECKING else object)
         wxyz: tuple[float, float, float, float] | None = None,
         position: tuple[float, float, float] | None = None,
         fov: float | None = None,
+        render_depth: bool = False,
         transport_format: Literal["png", "jpeg"] = "jpeg",
     ) -> np.ndarray:
         """Request a render from a client, block until it's done and received, then
@@ -512,11 +513,81 @@ class ClientHandle(_BackwardsCompatibilityShim if not TYPE_CHECKING else object)
                 ),
                 wxyz=cast_vector(wxyz if wxyz is not None else self.camera.wxyz, 4),
                 fov=fov if fov is not None else self.camera.fov,
+                render_depth=render_depth,
             )
         )
         render_ready_event.wait()
         assert out is not None
         return out
+    
+    # def get_render_depth(
+    #     self,
+    #     height: int,
+    #     width: int,
+    #     *,
+    #     wxyz: tuple[float, float, float, float] | None = None,
+    #     position: tuple[float, float, float] | None = None,
+    #     fov: float | None = None,
+    #     transport_format: Literal["png", "jpeg"] = "png",
+    # ) -> np.ndarray:
+    #     """Request a depth render from a client, block until it's done and received, then
+    #     return it as a numpy array. If wxyz, position, and fov are not provided, the
+    #     current camera state will be used.
+
+    #     Args:
+    #         height: Height of rendered image. Should be <= the browser height.
+    #         width: Width of rendered image. Should be <= the browser width.
+    #         wxyz: Camera orientation as a quaternion. If not provided, the current camera
+    #             position will be used.
+    #         position: Camera position. If not provided, the current camera position will
+    #             be used.
+    #         fov: Vertical field of view of the camera, in radians. If not provided, the
+    #             current camera position will be used.
+    #         transport_format: Image transport format. PNG will return a lossless (H, W, 4) RGBA array.
+    #     """
+    #     connection = self._websock_connection
+
+    #     def got_render_cb(
+    #         client_id: int, message: _messages.GetRenderDepthResponseMessage
+    #     ) -> None:
+    #         del client_id
+    #         connection.unregister_handler(
+    #             _messages.GetRenderDepthResponseMessage, got_render_cb
+    #         )
+    #         nonlocal out
+    #         out = iio.imread(
+    #             io.BytesIO(message.payload),
+    #             extension=f".{transport_format}",
+    #         )
+    #         render_ready_event.set()
+
+    #     out = None
+    #     render_ready_event = threading.Event()
+
+    #     connection.register_handler(
+    #         _messages.GetRenderDepthResponseMessage, got_render_cb
+    #     )
+
+    #     connection.queue_message(
+    #         _messages.GetRenderDepthRequestMessage(
+    #             "image/jpeg" if transport_format == "jpeg" else "image/png",
+    #             height=height,
+    #             width=width,
+    #             # Only used for JPEG. The main reason to use a lower quality version
+    #             # value is (unfortunately) to make life easier for the Javascript
+    #             # garbage collector.
+    #             quality=80,
+    #             position=cast_vector(
+    #                 position if position is not None else self.camera.position, 3
+    #             ),
+    #             wxyz=cast_vector(wxyz if wxyz is not None else self.camera.wxyz, 4),
+    #             fov=fov if fov is not None else self.camera.fov,
+    #         )
+    #     )
+
+    #     render_ready_event.wait()
+    #     assert out is not None
+    #     return out
 
 
 class ViserServer(_BackwardsCompatibilityShim if not TYPE_CHECKING else object):
