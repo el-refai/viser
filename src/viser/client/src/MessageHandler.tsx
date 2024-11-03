@@ -571,6 +571,8 @@ export function FrameSynchronizedMessageHandler() {
         const renderer = new THREE.WebGLRenderer({
           antialias: true,
           alpha: true,
+          depth: true,
+          preserveDrawingBuffer: renderDepth, 
         });
         renderer.setSize(targetWidth, targetHeight);
         renderer.setClearColor(
@@ -579,7 +581,8 @@ export function FrameSynchronizedMessageHandler() {
         );
   
         if (renderDepth) {
-          const depthTexture = new THREE.DepthTexture(targetWidth, targetHeight);
+          const dpr = renderer.getPixelRatio();
+          const depthTexture = new THREE.DepthTexture(targetWidth*dpr, targetHeight*dpr);
           depthTexture.type = THREE.UnsignedShortType;
           depthTexture.format = THREE.DepthFormat;
   
