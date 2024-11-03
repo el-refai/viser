@@ -586,7 +586,7 @@ export function FrameSynchronizedMessageHandler() {
           depthTexture.type = THREE.UnsignedShortType;
           depthTexture.format = THREE.DepthFormat;
   
-          const renderTarget = new THREE.WebGLRenderTarget(targetWidth, targetHeight);
+          const renderTarget = new THREE.WebGLRenderTarget(targetWidth*dpr, targetHeight*dpr);
           renderTarget.depthTexture = depthTexture;
   
           renderer.setRenderTarget(renderTarget);
@@ -601,7 +601,7 @@ export function FrameSynchronizedMessageHandler() {
           viewer.getRenderRequestState.current = "in_progress";
           viewer.sendMessageRef.current({
             type: "GetRenderResponseMessage",
-            payload: new Uint8Array(await depthBlob.arrayBuffer()), // Using 'await' here
+            payload: new Uint8Array(await depthBlob!.arrayBuffer()), // Using 'await' here
           });
           viewer.getRenderRequestState.current = "ready";
         } else {
