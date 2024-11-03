@@ -572,7 +572,7 @@ export function FrameSynchronizedMessageHandler() {
           antialias: true,
           alpha: true,
           depth: true,
-          preserveDrawingBuffer: renderDepth, 
+          // preserveDrawingBuffer: renderDepth, 
         });
         renderer.setSize(targetWidth, targetHeight);
         renderer.setClearColor(
@@ -581,6 +581,7 @@ export function FrameSynchronizedMessageHandler() {
         );
   
         if (renderDepth) {
+          console.log("Here");
           const dpr = renderer.getPixelRatio();
           const depthTexture = new THREE.DepthTexture(targetWidth*dpr, targetHeight*dpr);
           depthTexture.type = THREE.UnsignedShortType;
@@ -599,12 +600,15 @@ export function FrameSynchronizedMessageHandler() {
           const depthBlob = new Blob([depthBuffer.buffer], { type: "application/octet-stream" });
   
           viewer.getRenderRequestState.current = "in_progress";
+          console.log("Depth buffer size:", depthBuffer.length);
+          console.log("Sending depth response message");
           viewer.sendMessageRef.current({
             type: "GetRenderResponseMessage",
             payload: new Uint8Array(await depthBlob!.arrayBuffer()), // Using 'await' here
           });
           viewer.getRenderRequestState.current = "ready";
         } else {
+          console.log("Here Rendered");
           renderer.render(viewer.sceneRef.current!, camera);
   
           viewer.getRenderRequestState.current = "in_progress";
