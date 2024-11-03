@@ -523,7 +523,7 @@ export function FrameSynchronizedMessageHandler() {
   const messageQueueRef = viewer.messageQueueRef;
 
   useFrame(
-    () => {
+    async () => { // Marking the function as async
       // Send a render along if it was requested!
       if (viewer.getRenderRequestState.current === "triggered") {
         viewer.getRenderRequestState.current = "pause";
@@ -532,13 +532,13 @@ export function FrameSynchronizedMessageHandler() {
         const cameraWxyz = viewer.getRenderRequest.current!.wxyz;
         const cameraFov = viewer.getRenderRequest.current!.fov;
         const renderDepth = viewer.getRenderRequest.current!.render_depth;
-
+  
         const targetWidth = viewer.getRenderRequest.current!.width;
         const targetHeight = viewer.getRenderRequest.current!.height;
-
+  
         // Render the scene using the virtual camera
         const T_threeworld_world = computeT_threeworld_world(viewer);
-
+  
         // Create a new perspective camera
         const camera = new THREE.PerspectiveCamera(
           THREE.MathUtils.radToDeg(cameraFov),
@@ -546,7 +546,7 @@ export function FrameSynchronizedMessageHandler() {
           0.01, // Near.
           1000.0, // Far.
         );
-
+  
         // Set camera pose.
         camera.position.set(...cameraPosition).applyMatrix4(T_threeworld_world);
         camera.setRotationFromQuaternion(
@@ -567,10 +567,7 @@ export function FrameSynchronizedMessageHandler() {
               ),
             ),
         );
-
-        // Note: We don't need to add the camera to the scene for rendering
-        // The renderer.render() function uses the camera directly
-        // Create a new renderer
+  
         const renderer = new THREE.WebGLRenderer({
           antialias: true,
           alpha: true,
@@ -579,62 +576,49 @@ export function FrameSynchronizedMessageHandler() {
         renderer.setClearColor(
           0xffffff,
           viewer.getRenderRequest.current!.format == "image/png" ? 0.0 : 1.0,
-        ); // Set clear color to transparent
-
+        );
+  
         if (renderDepth) {
-          // Create a depth texture
-          const depthTexture = new THREE.DepthTexture();
+          const depthTexture = new THREE.DepthTexture(targetWidth, targetHeight);
           depthTexture.type = THREE.UnsignedShortType;
           depthTexture.format = THREE.DepthFormat;
-
-          // Create a render target with depth texture
+  
           const renderTarget = new THREE.WebGLRenderTarget(targetWidth, targetHeight);
           renderTarget.depthTexture = depthTexture;
-
-          // Render the scene to the render target
+  
           renderer.setRenderTarget(renderTarget);
           renderer.render(viewer.sceneRef.current!, camera);
           renderer.setRenderTarget(null);
-
-          // Get the depth data
+  
           const depthBuffer = new Uint16Array(targetWidth * targetHeight);
           renderer.readRenderTargetPixels(renderTarget, 0, 0, targetWidth, targetHeight, depthBuffer);
-
-          // Convert depth data to a blob
+  
           const depthBlob = new Blob([depthBuffer.buffer], { type: "application/octet-stream" });
-
+  
           viewer.getRenderRequestState.current = "in_progress";
           viewer.sendMessageRef.current({
-            type: "GetRenderDepthResponseMessage",
-            payload: new Uint8Array(await depthBlob.arrayBuffer()),
+            type: "GetRenderResponseMessage",
+            payload: new Uint8Array(await depthBlob.arrayBuffer()), // Using 'await' here
           });
           viewer.getRenderRequestState.current = "ready";
         } else {
-          // Render the scene.
           renderer.render(viewer.sceneRef.current!, camera);
-
-          // Get the rendered image.
+  
           viewer.getRenderRequestState.current = "in_progress";
-          renderer.domElement.toBlob(async (blob) => {
+          renderer.domElement.toBlob(async (blob) => { // Marking this function as async as well
             renderer.dispose();
             renderer.forceContextLoss();
-
+  
             viewer.sendMessageRef.current({
               type: "GetRenderResponseMessage",
-              payload: new Uint8Array(await blob!.arrayBuffer()),
+              payload: new Uint8Array(await blob!.arrayBuffer()), // Using 'await' here
             });
             viewer.getRenderRequestState.current = "ready";
           }, viewer.getRenderRequest.current!.format);
         }
       }
-
-      // Handle messages, but only if we're not trying to render something.
+  
       if (viewer.getRenderRequestState.current === "ready") {
-        // Handle messages before every frame.
-        // Place this directly in ws.onmessage can cause race conditions!
-        //
-        // If a render is requested, note that we don't handle any more messages
-        // until the render is done.
         const requestRenderIndex = messageQueueRef.current.findIndex(
           (message) => message.type === "GetRenderRequestMessage",
         );
@@ -646,10 +630,6 @@ export function FrameSynchronizedMessageHandler() {
         processBatch.forEach(handleMessage);
       }
     },
-    // We should handle messages before doing anything else!!
-    //
-    // Importantly, this priority should be *lower* than the useFrame priority
-    // used to update scene node transforms in SceneTree.tsx.
     -100000,
   );
 
