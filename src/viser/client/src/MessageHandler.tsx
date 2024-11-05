@@ -589,10 +589,11 @@ export function FrameSynchronizedMessageHandler() {
   
           const renderTarget = new THREE.WebGLRenderTarget(targetWidth*dpr, targetHeight*dpr);
           renderTarget.depthTexture = depthTexture;
-  
+          console.log("Here2");
           renderer.setRenderTarget(renderTarget);
           renderer.render(viewer.sceneRef.current!, camera);
           renderer.setRenderTarget(null);
+          console.log("Here3");
   
           const depthBuffer = new Uint16Array(targetWidth * targetHeight);
           renderer.readRenderTargetPixels(renderTarget, 0, 0, targetWidth, targetHeight, depthBuffer);
@@ -603,12 +604,11 @@ export function FrameSynchronizedMessageHandler() {
           console.log("Depth buffer size:", depthBuffer.length);
           console.log("Sending depth response message");
           viewer.sendMessageRef.current({
-            type: "GetRenderResponseMessage",
-            payload: new Uint8Array(await depthBlob!.arrayBuffer()), // Using 'await' here
+            type: "GetDepthRenderResponseMessage",
+            payload: new Uint16Array(await depthBlob!.arrayBuffer()), // Using 'await' here
           });
           viewer.getRenderRequestState.current = "ready";
         } else {
-          console.log("Here Rendered");
           renderer.render(viewer.sceneRef.current!, camera);
   
           viewer.getRenderRequestState.current = "in_progress";

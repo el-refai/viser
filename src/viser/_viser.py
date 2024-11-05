@@ -485,10 +485,10 @@ class ClientHandle(_BackwardsCompatibilityShim if not TYPE_CHECKING else object)
         connection = self._websock_connection
 
         def got_render_cb(
-            client_id: int, message: _messages.GetRenderResponseMessage
+            client_id: int, message: _messages.GetRenderResponseMessage | _messages.GetDepthRenderResponseMessage
         ) -> None:
             del client_id
-            breakpoint()
+            # breakpoint()
             connection.unregister_handler(
                 _messages.GetRenderResponseMessage, got_render_cb
             )
@@ -498,8 +498,10 @@ class ClientHandle(_BackwardsCompatibilityShim if not TYPE_CHECKING else object)
                 extension=f".{transport_format}",
             )
             render_ready_event.set()
-
-        connection.register_handler(_messages.GetRenderResponseMessage, got_render_cb)
+        if render_depth:
+            connection.register_handler(_messages.GetDepthRenderResponseMessage, got_render_cb)
+        else:
+            connection.register_handler(_messages.GetRenderResponseMessage, got_render_cb)
         self._websock_connection.queue_message(
             _messages.GetRenderRequestMessage(
                 "image/jpeg" if transport_format == "jpeg" else "image/png",

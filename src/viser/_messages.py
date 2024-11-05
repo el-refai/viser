@@ -1279,6 +1279,12 @@ class GetRenderResponseMessage(Message):
 
     payload: bytes
 
+@dataclasses.dataclass
+class GetDepthRenderResponseMessage(Message):
+    """Message from client->server carrying a render."""
+
+    payload: bytes
+
 
 @dataclasses.dataclass
 class FileTransferStart(Message):

@@ -1059,6 +1059,14 @@ export interface GetRenderResponseMessage {
   type: "GetRenderResponseMessage";
   payload: Uint8Array;
 }
+/** Message from client->server carrying a render.
+ *
+ * (automatically generated)
+ */
+export interface GetDepthRenderResponseMessage {
+  type: "GetDepthRenderResponseMessage";
+  payload: Uint16Array;
+}
 /** Signal that a file is about to be sent.
  *
  * (automatically generated)
@@ -1197,6 +1205,7 @@ export type Message =
   | GaussianSplatsMessage
   | GetRenderRequestMessage
   | GetRenderResponseMessage
+  | GetDepthRenderResponseMessage
   | FileTransferStart
   | FileTransferPart
   | FileTransferPartAck
